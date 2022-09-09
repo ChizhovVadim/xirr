@@ -6,7 +6,6 @@ import (
 	"time"
 )
 
-var errInvalidPayments = errors.New("negative and positive payments are required")
 var errXirr = errors.New("xirr cannot be calculated")
 
 type Payment struct {
@@ -73,15 +72,15 @@ func calculateXirr(cashFlows []cashflow, lowRate, highRate, precision float64, d
 
 		var middleRate = 0.5 * (lowRate + highRate)
 		var middleResult = calcEquation(cashFlows, middleRate)
+		if math.Abs(middleResult) <= precision {
+			return middleRate, nil
+		}
 		if math.Signbit(middleResult) == math.Signbit(lowResult) {
 			lowRate = middleRate
 			lowResult = middleResult
 		} else {
 			highRate = middleRate
 			highResult = middleResult
-		}
-		if math.Abs(middleResult) <= precision {
-			return 0.5 * (highRate + lowRate), nil
 		}
 	}
 }
