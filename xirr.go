@@ -23,7 +23,7 @@ func XIRR(payments []Payment) (float64, error) {
 	const decimals = 3
 	var precision = math.Pow(10, -decimals)
 	var minRate = precision
-	const maxRate = 1000000
+	const maxRate = 10000000
 	return calculateXirr(yearCashflows, minRate, maxRate, precision, decimals)
 }
 

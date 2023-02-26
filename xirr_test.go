@@ -23,6 +23,17 @@ func TestXirr(t *testing.T) {
 			},
 			Xirr: 2.591,
 		},
+		{
+			Payments: []Payment{
+				Payment{mustParseDate("2022-08-26"), -20},
+				Payment{mustParseDate("2022-09-26"), 0.12},
+				Payment{mustParseDate("2022-10-26"), 0.12},
+				Payment{mustParseDate("2022-11-28"), 0.12},
+				Payment{mustParseDate("2022-12-26"), 0.12},
+				Payment{mustParseDate("2023-01-26"), 20.12},
+			},
+			Xirr: 1.074,
+		},
 	}
 	for i, test := range tests {
 		var xirr, err = XIRR(test.Payments)
