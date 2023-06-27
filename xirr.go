@@ -1,16 +1,23 @@
 package xirr
 
 import (
-	"errors"
 	"math"
 	"time"
 )
 
-var errXirr = errors.New("xirr cannot be calculated")
-
-type Payment struct {
-	Date   time.Time
-	Amount float64
+func XIRR(payments []Payment) RateInfo {
+	var startDate, finishDate = findStartAndFinishDates(payments)
+	var totalYears = YearsBetween(startDate, finishDate)
+	var yearCashflows = convertToCashflows(payments, startDate)
+	var annualRate = calculateXirr(yearCashflows, 0, 1e6, 1e-4)
+	var rate = math.Pow(annualRate, totalYears)
+	return RateInfo{
+		StartDate:  startDate,
+		FinishDate: finishDate,
+		Years:      totalYears,
+		Rate:       rate,
+		AnnualRate: annualRate,
+	}
 }
 
 type cashflow struct {
@@ -18,40 +25,35 @@ type cashflow struct {
 	Amount float64
 }
 
-func XIRR(payments []Payment) (float64, error) {
-	var yearCashflows = convertToCashflows(payments)
-	const decimals = 3
-	var precision = math.Pow(10, -decimals)
-	var minRate = precision
-	const maxRate = 1000000
-	return calculateXirr(yearCashflows, minRate, maxRate, precision, decimals)
-}
-
-func findMinDate(payments []Payment) time.Time {
-	var result = payments[0].Date
-	for i := 1; i < len(payments); i++ {
-		var d = payments[i].Date
-		if d.Before(result) {
-			result = d
+func findStartAndFinishDates(payments []Payment) (startDate, finishDate time.Time) {
+	var hasValue bool
+	for i := range payments {
+		var d = payments[i]
+		if !hasValue {
+			hasValue = true
+			startDate = d.Date
+			finishDate = d.Date
+		} else {
+			if d.Date.Before(startDate) {
+				startDate = d.Date
+			}
+			if d.Date.After(finishDate) {
+				finishDate = d.Date
+			}
 		}
 	}
-	return result
+	return
 }
 
-func convertToCashflows(payments []Payment) []cashflow {
-	var minDate = findMinDate(payments)
-	var result = make([]cashflow, len(payments))
-	for i, x := range payments {
-		result[i] = cashflow{
-			Years:  yearsBetween(minDate, x.Date),
+func convertToCashflows(payments []Payment, baseDate time.Time) []cashflow {
+	var result = make([]cashflow, 0, len(payments))
+	for _, x := range payments {
+		result = append(result, cashflow{
+			Years:  YearsBetween(baseDate, x.Date),
 			Amount: x.Amount,
-		}
+		})
 	}
 	return result
-}
-
-func yearsBetween(start, finish time.Time) float64 {
-	return float64(finish.Sub(start)/(24*time.Hour)) / 365.25
 }
 
 func calcEquation(cashflows []cashflow, interestRate float64) float64 {
@@ -62,18 +64,18 @@ func calcEquation(cashflows []cashflow, interestRate float64) float64 {
 	return sum
 }
 
-func calculateXirr(cashFlows []cashflow, lowRate, highRate, precision float64, decimals int) (float64, error) {
+func calculateXirr(cashFlows []cashflow, lowRate, highRate, precision float64) float64 {
 	var lowResult = calcEquation(cashFlows, lowRate)
 	var highResult = calcEquation(cashFlows, highRate)
 	for {
 		if math.Signbit(lowResult) == math.Signbit(highResult) {
-			return 0, errXirr
+			return math.NaN()
 		}
 
 		var middleRate = 0.5 * (lowRate + highRate)
 		var middleResult = calcEquation(cashFlows, middleRate)
 		if math.Abs(middleResult) <= precision {
-			return middleRate, nil
+			return middleRate
 		}
 		if math.Signbit(middleResult) == math.Signbit(lowResult) {
 			lowRate = middleRate

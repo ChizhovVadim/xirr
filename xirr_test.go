@@ -25,13 +25,9 @@ func TestXirr(t *testing.T) {
 		},
 	}
 	for i, test := range tests {
-		var xirr, err = XIRR(test.Payments)
-		if err != nil {
-			t.Error(err)
-			continue
-		}
-		if math.Abs(xirr-test.Xirr) > 0.005 {
-			t.Errorf("%v %v %v", i, test, xirr)
+		var rateInfo = XIRR(test.Payments)
+		if math.Abs(rateInfo.AnnualRate-test.Xirr) > 0.005 {
+			t.Errorf("%v %v %v", i, test, rateInfo)
 			continue
 		}
 	}
