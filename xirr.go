@@ -9,7 +9,7 @@ func XIRR(payments []Payment) RateInfo {
 	var startDate, finishDate = findStartAndFinishDates(payments)
 	var totalYears = YearsBetween(startDate, finishDate)
 	var yearCashflows = convertToCashflows(payments, startDate)
-	var annualRate = calculateXirr(yearCashflows, 0, 1e6, 1e-4)
+	var annualRate = calculateXirr(yearCashflows, 1e-6, 1e6, 1e-4)
 	var rate = math.Pow(annualRate, totalYears)
 	return RateInfo{
 		StartDate:  startDate,
